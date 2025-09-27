@@ -1,4 +1,5 @@
 import random
+import os
 
 MAX_LINES = 3
 MAX_BET = 100
@@ -35,6 +36,11 @@ def check_winnings(columns, lines, bet, values):
             winnings += values[symbol] * bet
             winning_lines.append(line + 1)
 
+    # Jackpot bonus agar sab line jeet gayi
+    if len(winning_lines) == MAX_LINES:
+        print("🎉 JACKPOT! You hit all lines!")
+        winnings += 50
+
     return winnings, winning_lines
 
 
@@ -65,7 +71,6 @@ def print_slot_machine(columns):
                 print(column[row], end=" | ")
             else:
                 print(column[row], end="")
-
         print()
 
 
@@ -80,14 +85,12 @@ def deposit():
                 print("Amount must be greater than 0.")
         else:
             print("Please enter a number.")
-
     return amount
 
 
 def get_number_of_lines():
     while True:
-        lines = input(
-            "Enter the number of lines to bet on (1-" + str(MAX_LINES) + ")? ")
+        lines = input(f"Enter the number of lines to bet on (1-{MAX_LINES})? ")
         if lines.isdigit():
             lines = int(lines)
             if 1 <= lines <= MAX_LINES:
@@ -96,7 +99,6 @@ def get_number_of_lines():
                 print("Enter a valid number of lines.")
         else:
             print("Please enter a number.")
-
     return lines
 
 
@@ -111,7 +113,6 @@ def get_bet():
                 print(f"Amount must be between ${MIN_BET} - ${MAX_BET}.")
         else:
             print("Please enter a number.")
-
     return amount
 
 
@@ -122,31 +123,53 @@ def spin(balance):
         total_bet = bet * lines
 
         if total_bet > balance:
-            print(
-                f"You do not have enough to bet that amount, your current balance is: ${balance}")
+            print(f"You do not have enough to bet that amount, your current balance is: ${balance}")
         else:
             break
 
-    print(
-        f"You are betting ${bet} on {lines} lines. Total bet is equal to: ${total_bet}")
+    print(f"You are betting ${bet} on {lines} lines. Total bet is: ${total_bet}")
 
     slots = get_slot_machine_spin(ROWS, COLS, symbol_count)
     print_slot_machine(slots)
     winnings, winning_lines = check_winnings(slots, lines, bet, symbol_value)
     print(f"You won ${winnings}.")
-    print(f"You won on lines:", *winning_lines)
+    if winning_lines:
+        print(f"You won on lines:", *winning_lines)
+    else:
+        print("No winning lines this time!")
     return winnings - total_bet
 
 
+# ----------- Balance Save/Load -------------
+def save_balance(balance):
+    with open("balance.txt", "w") as f:
+        f.write(str(balance))
+
+def load_balance():
+    if os.path.exists("balance.txt"):
+        with open("balance.txt", "r") as f:
+            return int(f.read())
+    return 0
+
+
 def main():
-    balance = deposit()
+    balance = load_balance()
+    if balance == 0:
+        balance = deposit()
+
     while True:
-        print(f"Current balance is ${balance}")
-        answer = input("Press enter to play (q to quit).")
-        if answer == "q":
+        print(f"\n💰 Current balance is ${balance}")
+        answer = input("Press enter to play (q to quit): ")
+        if answer.lower() == "q":
             break
         balance += spin(balance)
 
+        # Agar balance khatam ho gaya
+        if balance <= 0:
+            print("You have no money left! Game over.")
+            break
+
+    save_balance(balance)
     print(f"You left with ${balance}")
 
 
